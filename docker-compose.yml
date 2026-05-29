@@ -1,19 +1,24 @@
-version: "3.8"
+# Template: docker-compose.yml
+# Banco de Dados Vetorizado para IA (PostgreSQL + pgvector)
+# Copie este arquivo para seu repositório e preencha os valores
+
+version: '3.8'
 
 services:
-  db:
-    image: pgvector/pgvector:pg16
+  pgvector-db:
+    image: pgvector/pgvector:pg16  # Imagem com pgvector pré-compilado
     container_name: ia-vector-db
-    restart: unless-stopped
     environment:
       POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
+      POSTGRES_PASSWORD: senha123  # MUDE ISSO EM PRODUÇÃO!
       POSTGRES_DB: vector_db
     ports:
-      - "5432:5432"
+      - "5432:5432"  # Mapeia porta interna 5432 para externa 5432
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pg_data:/var/lib/postgresql/data  # Persistência de dados
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Script de inicialização
+    restart: unless-stopped
 
 volumes:
-  pgdata:
+  pg_data:
+    driver: local

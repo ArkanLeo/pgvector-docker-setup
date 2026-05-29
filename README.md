@@ -1,123 +1,129 @@
-# 🐘 PostgreSQL + pgvector — Infraestrutura Plug & Play
+# Banco de Dados Vetorizado para IA (PostgreSQL + pgvector)
 
-Repositório de infraestrutura pronta para projetos que precisam de **IA + busca semântica**.  
-Clone, rode um comando e tenha um banco PostgreSQL com suporte a vetores funcionando localmente.
+## 📋 Descrição
 
------
+Este repositório contém a infraestrutura “Plug & Play” para um banco de dados PostgreSQL com suporte a **embeddings** e **busca semântica** usando a extensão `pgvector`. É o ponto de partida para projetos que utilizam **RAG (Retrieval-Augmented Generation)** com Inteligência Artificial.
 
-## O que está aqui
+## 🚀 Como Usar
 
-|Arquivo             |Descrição                                                      |
-|--------------------|---------------------------------------------------------------|
-|`docker-compose.yml`|Sobe o PostgreSQL 16 com pgvector via Docker                   |
-|`init.sql`          |Ativa a extensão `vector`, cria tabela de exemplo e índice HNSW|
-|`README.md`         |Este arquivo                                                   |
+### Pré-requisitos
 
------
+- Docker instalado na sua máquina
+- Docker Compose instalado
 
-## Pré-requisitos
-
-- [Docker](https://docs.docker.com/get-docker/) instalado
-- [Docker Compose](https://docs.docker.com/compose/) (já incluído no Docker Desktop)
-
------
-
-## Subindo a infraestrutura
+### Subir o Banco de Dados
 
 ```bash
+# Clone este repositório
+git clone https://github.com/seu-usuario/seu-repositorio.git
+cd seu-repositorio
+
+# Suba o banco de dados
 docker-compose up -d
-```
 
-O banco ficará disponível em `localhost:5432` após ~5 segundos.
+# Aguarde 5 segundos para o banco inicializar completamente
+sleep 5
 
------
-
-## Derrubando a infraestrutura
-
-```bash
-docker-compose down -v
-```
-
-> ⚠️ O flag `-v` remove o volume de dados. Use apenas quando quiser um ambiente limpo.  
-> Para parar sem apagar os dados: `docker-compose down`
-
------
-
-## Credenciais padrão
-
-|Parâmetro|Valor      |
-|---------|-----------|
-|Host     |`localhost`|
-|Porta    |`5432`     |
-|Usuário  |`admin`    |
-|Senha    |`admin123` |
-|Banco    |`vector_db`|
-
-String de conexão:
-
-```
-postgresql://admin:admin123@localhost:5432/vector_db
-```
-
------
-
-## Verificando se o pgvector está ativo
-
-```bash
+# Verifique se a extensão pgvector foi criada
 docker exec ia-vector-db psql -U admin -d vector_db -c "\dx"
 ```
 
-Você deve ver `vector` na lista de extensões instaladas.
+Você deve ver a extensão `vector` listada.
 
------
+### Conectar ao Banco de Dados
 
-## Tabela de exemplo criada pelo init.sql
+```bash
+# Acesse o banco via psql
+docker exec -it ia-vector-db psql -U admin -d vector_db
 
-```sql
-CREATE TABLE documents (
-    id        SERIAL PRIMARY KEY,
-    content   TEXT NOT NULL,
-    metadata  JSONB,
-    embedding vector(1536)   -- dimensão padrão OpenAI text-embedding-3-small
-);
+# Dentro do psql, teste uma query
+SELECT * FROM documents;
 ```
 
-Um índice **HNSW** (`vector_cosine_ops`) é criado automaticamente para buscas por similaridade de cosseno.
+### Derrubar o Banco de Dados
 
-### Exemplo de busca semântica
+```bash
+# Parar e remover containers
+docker-compose down
 
-```sql
--- Busca os 5 documentos mais similares a um vetor de consulta
-SELECT id, content, 1 - (embedding <=> '[0.1, 0.2, ...]'::vector) AS similaridade
-FROM documents
-ORDER BY embedding <=> '[0.1, 0.2, ...]'::vector
-LIMIT 5;
+# Se quiser remover também os volumes (CUIDADO: deleta os dados!)
+docker-compose down -v
 ```
 
+## 🔧 Configuração
+
+### Credenciais Padrão
+
+- **Usuário:** `admin`
+- **Senha:** `senha123` (MUDE ISSO EM PRODUÇÃO!)
+- **Banco de Dados:** `vector_db`
+- **Porta:** `5432`
+
+### Arquivo `docker-compose.yml`
+
+O arquivo define:
+
+- **Imagem:** `pgvector/pgvector:pg16` (PostgreSQL 16 com pgvector pré-compilado)
+- **Volumes:** Persistência de dados em `pg_data` e injeção do script `init.sql`
+- **Portas:** Mapeamento da porta 5432
+
+### Arquivo `init.sql`
+
+Executado automaticamente na primeira inicialização. Contém:
+
+- Criação da extensão `pgvector`
+- Criação de tabela exemplo `documents` com coluna de embeddings
+- Criação de índice para buscas otimizadas
+
+## 📚 Próximos Passos
+
+1. **Integrar com sua aplicação:** Use a biblioteca `psycopg2` (Python) ou `pg` (Node.js) para conectar.
+1. **Gerar embeddings:** Use APIs como OpenAI, Hugging Face ou modelos locais.
+1. **Implementar RAG:** Armazene embeddings e implemente buscas semânticas.
+
+## 🐛 Troubleshooting
+
+### “Erro: porta 5432 já está em uso”
+
+Você já tem um PostgreSQL rodando. Opções:
+
+- Parar o PostgreSQL existente
+- Mudar a porta no `docker-compose.yml` para `5433:5432`
+
+### “Erro: extensão vector não encontrada”
+
+Você usou a imagem `postgres:latest` em vez de `pgvector/pgvector:pg16`. Corrija o `docker-compose.yml`.
+
+### “Erro: init.sql não foi executado”
+
+O script só roda na primeira inicialização. Se você já tinha subido o container:
+
+```bash
+docker-compose down -v  # Remove volume
+docker-compose up -d    # Sobe novamente
+```
+
+### “Erro: container sobe mas banco recusa conexão”
+
+Aguarde 5 segundos. O PostgreSQL demora um pouco para inicializar.
+
+## 📖 Referências
+
+- [pgvector GitHub](https://github.com/pgvector/pgvector)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [12-Factor App](https://12factor.net/)
+
+## ✅ Checklist
+
+- [ ] Docker e Docker Compose instalados
+- [ ] Repositório clonado
+- [ ] `docker-compose up -d` executado com sucesso
+- [ ] Extensão pgvector verificada
+- [ ] Banco de dados acessível em localhost:5432
+
 -----
 
-## Troubleshooting
-
-|Erro                            |Causa                         |Solução                                         |
-|--------------------------------|------------------------------|------------------------------------------------|
-|Porta 5432 já em uso            |PostgreSQL rodando localmente |Mude para `5433:5432` no `docker-compose.yml`   |
-|Extensão `vector` não encontrada|Imagem errada                 |Confirme que usa `pgvector/pgvector:pg16`       |
-|`init.sql` não foi executado    |Container já existia antes    |`docker-compose down -v && docker-compose up -d`|
-|Banco recusa conexão            |PostgreSQL ainda inicializando|Aguarde ~5s e tente novamente                   |
-
------
-
-## Casos de uso
-
-- **RAG (Retrieval-Augmented Generation)** — armazene embeddings de documentos e recupere contexto relevante antes de chamar um LLM
-- **Busca semântica** — encontre conteúdos por significado, não por palavras-chave
-- **Sistemas de recomendação** — calcule similaridade entre itens usando vetores
-- **Detecção de duplicatas** — identifique textos semanticamente equivalentes
-
------
-
-## Referências
-
-- [pgvector — repositório oficial](https://github.com/pgvector/pgvector)
-- [A Guide to Embeddings and pgvector](https://dev.to/googleai/a-guide-to-embeddings-and-pgvector-df0)
-- [Introduction to RAG and Vector Databases](https://medium.com/@sachinsoni600517/introduction-to-rag-retrieval-augmented-generation-and-vector-database-b593e8eb6a94)
+**Criado para:** Aula 16 — Arquitetura de Software (Ciclo 03)  
+**Disciplina:** Arquitetura de Software  
+**Instituição:** UniEVANGÉLICA  
+**Período:** 2026.1
